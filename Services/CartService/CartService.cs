@@ -23,9 +23,12 @@ public class CartService : ICartService
 
     public async ValueTask<Result> AddToCart(string userId, CreateCartProductDto createCartDto)
     {
+        _logger.LogInformation("Started product adding to cart");
         try
         {
             var cart = await _unitOfWork.CartRepository.GetAll().FirstOrDefaultAsync(c => c.UserId == userId);
+
+            var cartId = cart!.Id;
             if (cart is null)
             {
                 cart = new Entities.CartEntity()
@@ -33,12 +36,14 @@ public class CartService : ICartService
                     UserId = userId,
                 };
 
-                await _unitOfWork.CartRepository.AddAsync(cart);
+               var result =  await _unitOfWork.CartRepository.AddAsync(cart);
+               cartId = result.Id;
             }
-
+            
             var product = new CartProduct()
             {
                 ProductId = createCartDto.ProductId,
+                CartId = cartId
             };
 
             cart.CartProducts ??= new List<CartProduct>();

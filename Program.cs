@@ -14,18 +14,21 @@ using ArzonOL.Services.CategoryService;
 using ArzonOL.Services.CategoryService.Interfaces;
 using ArzonOL.Services.ProductServeice.Interfaces;
 using ArzonOL.Services.ProductServeice;
-using ArzonOL.Services.ProductMediaService;
 using ArzonOL.Services.CartService.Interfaces;
 using ArzonOL.Services.CartService;
+using Microsoft.Extensions.Caching.Memory;
+using ArzonOL.Services.VoterService.Interfaces;
+using ArzonOL.Services.VoterService;
+using AutoMapper;
 
 var builder = WebApplication.CreateBuilder(args);
 
 
 builder.Services.AddDbContext<AppDbContext>(options =>
-// {
-//   options.UseSqlite("Data Source=ArzonOL.db");
-// });
-    options.UseLazyLoadingProxies().UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+{
+  options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection"));
+  options.EnableSensitiveDataLogging();
+});
 
 builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
 builder.Services.AddScoped<ILoginService, LoginService>();
@@ -33,9 +36,13 @@ builder.Services.AddScoped<IRegisterService, RegisterService>();
 builder.Services.AddScoped<ICategoryService, CategoryService>();
 builder.Services.AddScoped<IProductService, ProductService>();
 builder.Services.AddScoped<ICategoryApproachService, CategoryApproachService>();
-builder.Services.AddScoped<IProductMediaService, ProductMediaService>();
 builder.Services.AddScoped<ICartService, CartService>();
 builder.Services.AddScoped<IMailSender, MailSender>();
+builder.Services.AddScoped<ISmsService, SmsService>();
+builder.Services.AddScoped<IVoterService, VoterService>();
+builder.Services.AddAutoMapper(typeof(Program)); 
+builder.Services.AddControllersWithViews();
+builder.Services.AddMemoryCache();
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(option =>
@@ -130,10 +137,9 @@ app.UseHttpsRedirection();
 app.UseCors("CorsPolicy");
 app.UseAuthentication();
 app.UseAuthorization();
-// app.UseMiddleware<ErrorHandlerMiddleware>();
 app.MapControllers();
-// await InitializeDataService.CreateDefaultAdmin(app);
-// await InitializeDataService.CreateDefaultRoles(app);
-// await InitializeDataService.CreateDefaultUser(app);
-// await InitializeDataService.CreateDefaultMerchand(app);
+await InitializeDataService.CreateDefaultAdmin(app);
+await InitializeDataService.CreateDefaultRoles(app);
+await InitializeDataService.CreateDefaultUser(app);
+await InitializeDataService.CreateDefaultMerchand(app);
 app.Run();

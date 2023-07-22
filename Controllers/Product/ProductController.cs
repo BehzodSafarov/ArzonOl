@@ -4,7 +4,7 @@ using ArzonOL.Services.ProductServeice.Interfaces;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using System;
-using System.Collections.Generic;
+using System.IO.Compression;
 using System.Threading.Tasks;
 
 namespace ArzonOL.Controllers.Product
@@ -50,6 +50,20 @@ namespace ArzonOL.Controllers.Product
             return Ok(createdProduct);
         }
 
+        [HttpPost("uploadProductFiles")]
+        [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(Result))]
+        public async Task<IActionResult> UploadProductImage(IList<IFormFile> files, Guid id)
+        {
+            if (id == Guid.Empty)
+                return BadRequest("Id cannot be empty");
+
+            if (files == null)
+                return BadRequest("file cannot be null");
+
+             await _productService.SaveFile(files, id);
+            return Ok();
+        }
+
         [HttpPut("updateProduct")]
         [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(Result<ProductModel>))]
         public async Task<IActionResult> UpdateProduct(UpdateProductDto updateProductDto)
@@ -82,5 +96,58 @@ namespace ArzonOL.Controllers.Product
             var product = await _productService.GetById(id);
             return Ok(product);
         }
+        
+        [HttpGet("files")]
+        public async Task<IActionResult> DownloadFiles(Guid id)
+        {
+            var product = await _productService.GetById(id);
+
+            var fileNamesString = product.Data!.ProductMedias;
+
+            if (fileNamesString is null)
+            {
+                return NotFound();
+            }
+
+            var fileNames = _productService.NamesSplitter(fileNamesString);
+ 
+            var filesDirectory = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot");
+            
+            var files = Directory.GetFiles(filesDirectory);
+            var importantFiles = new List<string>();
+
+            if (files is null)
+            {
+                return NotFound();
+            }
+            
+            foreach (var path in files)
+            {
+                if(fileNames.Contains(Path.GetFileName(path)))
+                {
+                    importantFiles.Add(path);
+                }
+            }
+            var memoryStream = new MemoryStream();
+            using (var archive = new ZipArchive(memoryStream, ZipArchiveMode.Create, true))
+            {
+                foreach (var filePath in importantFiles)
+                {
+                    var fileName = Path.GetFileName(filePath);
+                    
+                    var entry = archive.CreateEntry(fileName!);
+
+                    using (var fileStream = new FileStream(filePath, FileMode.Open))
+                    using (var entryStream = entry.Open())
+                    {
+                        fileStream.CopyTo(entryStream);
+                    }
+                }
+            }
+            
+            memoryStream.Position = 0;
+            return File(memoryStream, "application/octet-stream", "files.zip");
+        }
+
     }
 }

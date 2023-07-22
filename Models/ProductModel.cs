@@ -11,7 +11,7 @@ public class ProductModel
     public long OldPrice { get; set; }
     public long NewPrice { get; set; }
     public double? Discount { get; set; }
-    public virtual List<string>? ProductPhotos { get; set; }
+    public string? ProductMedias {get; set; }
     public string? VideoUrl { get; set; }
     public string? Description { get; set; }
     public string? Brand { get; set; }

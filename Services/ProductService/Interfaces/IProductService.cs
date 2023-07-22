@@ -10,6 +10,8 @@ public interface IProductService
     public ValueTask<Result<ProductModel>> GetById(Guid id);
     public ValueTask<Result<ICollection<ProductModel>>> GetAllAsync();
     public ValueTask<Result<ICollection<ProductModel>>> GetWithPaginationAsync(int page, int limit);
+    public ValueTask SaveFile(IList<IFormFile> files, Guid id);
     public ValueTask<Result> Remove(Guid id);
+    public IList<string> NamesSplitter(string names);
     
 }

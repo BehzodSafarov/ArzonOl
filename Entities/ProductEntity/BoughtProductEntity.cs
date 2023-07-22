@@ -4,10 +4,10 @@ namespace ArzonOL.Entities;
 
 public class BoughtProductEntity : BaseEntity
 {
-    [ForeignKey(nameof(UserEntity))]
+    [ForeignKey(nameof(UserId))]
     public string? UserId {get; set;}
     public virtual UserEntity? UserEntity {get; set;}
-    [ForeignKey(nameof(ProductEntity))]
+    [ForeignKey(nameof(ProductId))]
     public Guid? ProductId {get; set;}
     public virtual BaseProductEntity? ProductEntity {get; set;}
 }

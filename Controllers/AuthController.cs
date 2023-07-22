@@ -5,6 +5,7 @@ using ArzonOL.Enums;
 using ArzonOL.Services.AuthService.Interfaces;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Configuration;
 using System;
 using System.Collections.Generic;
@@ -20,19 +21,23 @@ namespace ArzonOL.Controllers
         private readonly IRegisterService _registerService;
         private readonly UserManager<UserEntity> _userManager;
         private readonly IConfiguration _configuration;
-        private readonly IMailSender _mailSender;
+        private readonly ISmsService _smsService;
+        private readonly IMemoryCache _cache;
+        private string AdditionalKeyword = "keyword";
 
         public AuthController(ILoginService loginService,
                               IRegisterService registerService,
                               UserManager<UserEntity> userManager,
                               IConfiguration configuration,
-                              IMailSender mailSender)
+                              ISmsService smsService,
+                              IMemoryCache cache)
         {
             _loginService = loginService;
             _registerService = registerService;
             _userManager = userManager;
             _configuration = configuration;
-            _mailSender = mailSender;
+            _smsService = smsService;
+            _cache = cache;
         }
 
         [HttpPost("login")]
@@ -62,96 +67,31 @@ namespace ArzonOL.Controllers
                 throw new Exception(e.Message);
             }
         }
-
-        [HttpPost("register")]
-        public async Task<IActionResult> RegisterAsync(RegisterDto registerDto)
+        
+        [HttpPost("sms")]
+        public async Task<IActionResult> SendSmsAsync(SendSmsDto smsDto)
         {
             try
             {
-                var result = await _registerService.RegisterAsync(registerDto.UserName!, registerDto.Password!, "User", registerDto.Email!);
+                var isCorrectPhoneNumber = ValidatePhoneNumber(smsDto.PhoneNumber!);
 
-                if (!result.Succeeded)
-                    return BadRequest(result.Errors);
+                if (!isCorrectPhoneNumber.Item1)
+                    return BadRequest(isCorrectPhoneNumber.Item2);
+                    
+                await _smsService.SendSmsAsync(smsDto.PhoneNumber!);
 
-                return Ok(result);
-            }
-            catch (Exception e)
-            {
-                throw new Exception(e.Message);
-            }
-        }
+                var cacheEntryOptions = new MemoryCacheEntryOptions()
+                                        .SetSlidingExpiration(TimeSpan.FromMinutes(3));
 
-        [HttpPost("signin-google")]
-        public async Task<IActionResult> SignInWithGoogle(LoginWithGoogle loginWithGoogle)
-        {
-            var payload = await _loginService.VerifyGoogleToken(loginWithGoogle.Provider!, loginWithGoogle.IdToken!);
-
-            if (payload is null)
-                return BadRequest(new { Succeeded = false });
-
-            var info = new UserLoginInfo(loginWithGoogle.Provider!, payload.Subject, loginWithGoogle.Provider);
-
-            var user = await _userManager.FindByLoginAsync(info.LoginProvider, info.ProviderKey);
-            if (user is null)
-            {
-                user = await _userManager.FindByEmailAsync(payload.Email);
-                if (user is null)
+                if (_cache.TryGetValue(smsDto.PhoneNumber+AdditionalKeyword, out string? existingCode))
                 {
-                    user = new UserEntity { Email = payload.Email, UserName = payload.Email };
-                    var result = await _userManager.CreateAsync(user);
-                    if (!result.Succeeded)
-                        return BadRequest(new
-                        {
-                            Succeeded = false,
-                            Errors = new List<string>(result.Errors.Select(x => x.Description)) { "Invalid External Auth" }
-                        });
-
-                    var token = await _userManager.GenerateEmailConfirmationTokenAsync(await _userManager.FindByEmailAsync(user.Email));
-                    _mailSender.Send(user.Email, "Email Confirmation Message", @$"
-                        <html>
-                        <head> 
-                            <meta name=""viewport"" content=""width=device-width, initial-scale=1.0"">
-                        </head>
-                        <body>
-                            <h3>Your confirmation message</h3>
-                            <p>Visit through this link to confirm your email: </p>
-                            <form method=""post"" action=""{_configuration.GetSection("Urls")["ConfirmUrl"]}"">
-                                <input type=""hidden"" value=""{token}"" name=""token""/>
-                                <input type=""hidden"" value=""{user.Email}"" name=""email""/>
-                                <button type=""submit"" style=""background-color:#0669B4; color: white; padding: 30px; margin: 50px; width:100px; height: 30px"">
-                                    Confirm
-                                </button>
-                            </form>
-                            <h5 stype=""padding: 10px;"">{token}</h5>
-                        </body>
-                        </html>
-                    ");
-
-                    await _userManager.AddLoginAsync(user, info);
+                    _cache.Remove(smsDto.PhoneNumber+AdditionalKeyword);
                 }
-                else
-                {
-                    await _userManager.AddLoginAsync(user, info);
-                }
-            }
+                var passwordAndUserName = smsDto.Password+"#"+smsDto.UserName;
 
-            var identityUser = await _userManager.FindByEmailAsync(user.Email);
-            var userRole = await _userManager.GetRolesAsync(identityUser);
-            var jwtToken = _loginService.CreateJwtToken(identityUser.UserName, identityUser.Email, userRole[0], identityUser.Id);
-            return Ok(new { Succeeded = true, Token = jwtToken });
-        }
+                _cache.Set(smsDto.PhoneNumber+AdditionalKeyword, passwordAndUserName, cacheEntryOptions);
 
-        [HttpPost("merchant/register")]
-        public async Task<IActionResult> RegisterMerchantAsync(RegisterDto registerDto)
-        {
-            try
-            {
-                var result = await _registerService.RegisterAsync(registerDto.UserName!, registerDto.Password!, "Merchant", registerDto.Email!);
-
-                if (!result.Succeeded)
-                    return BadRequest(result.Errors);
-
-                return Ok(result.Succeeded);
+                return Ok($"Sent Sms to {smsDto.PhoneNumber} number");
             }
             catch (Exception e)
             {
@@ -159,57 +99,76 @@ namespace ArzonOL.Controllers
             }
         }
 
-        [HttpPost("logout")]
-        public async Task<IActionResult> Logout(LogOutDto loginDto)
+        [HttpPost("smsReciver")]
+        public async Task<IActionResult> SmsReciver(SmsReciverDto smsReciverDto)
+        {
+            Console.WriteLine("Startted Reciving Code");
+
+            if (!int.TryParse(smsReciverDto.Code, out int result))
+            return BadRequest("Code only can be number");
+
+            var validatedPhoneResult = ValidatePhoneNumber(smsReciverDto.PhoneNumber);
+
+            if(!validatedPhoneResult.Item1)
+            return BadRequest(validatedPhoneResult.Item2);
+
+            var validatedCode =  _smsService.ValidateSmsCode(smsReciverDto.PhoneNumber, smsReciverDto.Code);
+
+            if(!validatedCode)
+            return BadRequest("This code is false");
+            
+            if (_cache.TryGetValue(smsReciverDto.PhoneNumber+AdditionalKeyword, out string? passwordAndUserName))
+            {
+                var splittedString =  StringSplitter(passwordAndUserName);
+
+                var registerResult = await _registerService.RegisterAsync(splittedString[1], splittedString[0], "User", "email");
+
+                if (!registerResult.Succeeded)
+                    return BadRequest(registerResult.Errors);
+
+                return Ok(await LoginAsync(
+                    new LoginDto
+                    {
+                        UserName = splittedString[1],
+                        Password = splittedString[0]
+                    }
+                ));
+            }
+
+            return BadRequest("Something went wrong");
+        }
+
+        private (bool, string) ValidatePhoneNumber(string phoneNumber)
+        {
+            if (!float.TryParse(phoneNumber, out float result))
+            return (false, "Phone number can't be digit or simvoll");
+
+            if (phoneNumber.Length != 9)
+            {
+                return (false, "Phone number must be 9 digits");
+            }
+            if (string.IsNullOrEmpty(phoneNumber))
+            {
+                return (false, "Phone number can't be empty");
+            }
+
+            return (true, "Phone number is correct");
+        }
+        private IList<string> StringSplitter(string names)
         {
             try
             {
-                var result = await _loginService.LogOutAsync(loginDto.Id, loginDto.Password!);
+            string[] result = names.Split('#');
 
-                if (!result.Succeeded)
-                    return BadRequest(result.Errors);
-
-                return Ok(result.Succeeded);
+            return result;
             }
-            catch (Exception e)
+            catch (System.Exception)
             {
-                throw new Exception(e.Message);
+                
+                throw;
             }
         }
-
-        [HttpPost("changePassword")]
-        public async Task<IActionResult> ChangePassword(ChangePasswordDto changePasswordDto)
-        {
-            try
-            {
-                if (Guid.Empty == changePasswordDto.Id)
-                    return BadRequest(IdentityResult.Failed(new IdentityError { Code = EErrorType.ServerError.ToString(), Description = "Id can't be null here" }));
-
-                return Ok(await _registerService.ChangePasswordAsync(changePasswordDto.Id, changePasswordDto.OldPassword!, changePasswordDto.NewPassword!));
-            }
-            catch (Exception e)
-            {
-                throw new Exception(e.Message);
-            }
-        }
-
-        [HttpPost("changeUsername")]
-        public async Task<IActionResult> ChangeUserName(ChangeUsernameDto changeUsernameDto)
-        {
-            try
-            {
-                var result = await _registerService.ChangeUsernameAsync(changeUsernameDto.Id, changeUsernameDto.NewUserName!);
-
-                if (!result.Succeeded)
-                    return BadRequest(result.Errors);
-
-                return Ok(result.Succeeded);
-            }
-            catch (Exception e)
-            {
-                throw new Exception(e.Message);
-            }
-        }
-
     }
+
+
 }

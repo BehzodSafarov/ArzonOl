@@ -4,9 +4,7 @@ using ArzonOL.Models;
 using ArzonOL.Services.CartService.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-
 namespace ArzonOL.Controllers.Carts;
-
 
 [Route("api/[controller]")]
 [ApiController]
@@ -21,7 +19,7 @@ public class CartsController:ControllerBase
 
     [ProducesResponseType(typeof(List<CartProductModel>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(UnauthorizedResult), StatusCodes.Status401Unauthorized)]
-    [HttpGet]
+    [HttpGet("getWithPagination")]
     public async Task<IActionResult> GetUserCart([FromQuery] PaginationParams paginationParams)
     {
         var userId = TokenHelper.GetUserIdFromToken(HttpContext, "AuthToken");
@@ -37,7 +35,6 @@ public class CartsController:ControllerBase
     [HttpPost]
     public async Task<IActionResult> AddToCart(CreateCartProductDto createCartDto)
     {
-        
         var userId = TokenHelper.GetUserIdFromToken(HttpContext, "AuthToken");
         System.Console.WriteLine("################################################3"+userId);
         if(userId == null) return Unauthorized();

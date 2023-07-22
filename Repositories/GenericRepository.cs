@@ -36,7 +36,7 @@ public class GenericRepository<TEntity> : IGenericRepository<TEntity> where TEnt
         => _context.Set<TEntity>();
 
     public TEntity? GetById(Guid id)
-        => _context.Set<TEntity>().Find(id);
+        => _context.Set<TEntity>().Find(id.ToString());
 
     public async ValueTask<TEntity> Remove(TEntity entity)
     {

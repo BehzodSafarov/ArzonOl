@@ -18,9 +18,6 @@ namespace ArzonOL.Migrations
 #pragma warning disable 612, 618
             modelBuilder
                 .HasAnnotation("ProductVersion", "7.0.5")
-                .HasAnnotation("Proxies:ChangeTracking", false)
-                .HasAnnotation("Proxies:CheckEquality", false)
-                .HasAnnotation("Proxies:LazyLoading", true)
                 .HasAnnotation("Relational:MaxIdentifierLength", 128);
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
@@ -78,6 +75,9 @@ namespace ArzonOL.Migrations
 
                     b.Property<Guid?>("ProductCategoryApproachId")
                         .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("ProductMedias")
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("Region")
                         .HasColumnType("nvarchar(max)");
@@ -235,31 +235,6 @@ namespace ArzonOL.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("ProductCategories");
-                });
-
-            modelBuilder.Entity("ArzonOL.Entities.ProductMediaEntity", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("ImageBase64String")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<Guid?>("ProductId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<DateTime>("UpdatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("ProductId");
-
-                    b.ToTable("ProductMedias");
                 });
 
             modelBuilder.Entity("ArzonOL.Entities.ProductVoterEntity", b =>
@@ -599,15 +574,6 @@ namespace ArzonOL.Migrations
                     b.Navigation("ProductCategory");
                 });
 
-            modelBuilder.Entity("ArzonOL.Entities.ProductMediaEntity", b =>
-                {
-                    b.HasOne("ArzonOL.Entities.BaseProductEntity", "Product")
-                        .WithMany("ProductMedias")
-                        .HasForeignKey("ProductId");
-
-                    b.Navigation("Product");
-                });
-
             modelBuilder.Entity("ArzonOL.Entities.ProductVoterEntity", b =>
                 {
                     b.HasOne("ArzonOL.Entities.BaseProductEntity", "Product")
@@ -688,8 +654,6 @@ namespace ArzonOL.Migrations
             modelBuilder.Entity("ArzonOL.Entities.BaseProductEntity", b =>
                 {
                     b.Navigation("BoughtProducts");
-
-                    b.Navigation("ProductMedias");
 
                     b.Navigation("Voters");
                 });

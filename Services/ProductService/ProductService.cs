@@ -5,7 +5,6 @@ using ArzonOL.Models;
 using ArzonOL.Repositories.Interfaces;
 using ArzonOL.Services.ProductServeice.Interfaces;
 
-
 namespace ArzonOL.Services.ProductServeice;
 
 public class ProductService : IProductService
@@ -65,7 +64,7 @@ public class ProductService : IProductService
         
         var voteResult = GetProductVoteResult(createdProduct.Id);
         var boughtCount = GetBoughtCount(createdProduct.Id);
-        var productPhotos = GetProductPhotos(createdProduct.Id);
+        var productPhotos = GetProductMedias(createdProduct.Id);
         var productVoters = GetProductVoters(createdProduct.Id);
 
         var returnModel = new ProductModel
@@ -85,7 +84,7 @@ public class ProductService : IProductService
             PhoneNumber = createdProduct.PhoneNumber,
             StartDate = createdProduct.StartDate,
             EndDate = createdProduct.EndDate,
-            ProductPhotos = productPhotos,
+            ProductMedias = productPhotos,
             VotesResult = voteResult,
             BoughtCount = boughtCount,
             Discount = createdProduct.Discount,
@@ -115,13 +114,13 @@ public class ProductService : IProductService
       }
     }).ToList();
 
-    private  List<string>? GetProductPhotos(Guid id)
-    =>  _unitOfWork.ProductMediaRepository.GetAll().Where(x => x.ProductId == id).Select(p => p.ImageBase64String).ToList()!;
+    private  string GetProductMedias(Guid id)
+    =>  _unitOfWork.ProductRepository.GetAll().Where(x => x.Id == id).Select(media => media.ProductMedias).FirstOrDefault();
     
     private long GetBoughtCount(Guid id)
     => _unitOfWork.BoughtProductRepository.GetAll().Where(x => x.ProductId == id).Count();
 
-    private float GetProductVoteResult(Guid productId)
+    private float? GetProductVoteResult(Guid productId)
     {
         var productVoters = _unitOfWork.VoterRepository.GetAll().Where(x => x.ProductId == productId).ToList();
 
@@ -158,7 +157,7 @@ public class ProductService : IProductService
 
             products.ForEach(x => 
             {
-                x.ProductPhotos =  GetProductPhotos(x.Id);
+                x.ProductMedias =  GetProductMedias(x.Id);
                 x.VotesResult =  GetProductVoteResult(x.Id);
                 x.BoughtCount =  GetBoughtCount(x.Id);
                 x.Voters =  GetProductVoters(x.Id);
@@ -204,7 +203,7 @@ public class ProductService : IProductService
                 StartDate = product.StartDate,
                 EndDate = product.EndDate,
                 Discount = product.Discount,
-                ProductPhotos = GetProductPhotos(product.Id),
+                ProductMedias = GetProductMedias(product.Id),
                 VotesResult = GetProductVoteResult(product.Id),
                 BoughtCount = GetBoughtCount(product.Id),
                 Voters = GetProductVoters(product.Id)
@@ -246,7 +245,7 @@ public class ProductService : IProductService
 
             products.ForEach(x => 
             {
-                x.ProductPhotos =  GetProductPhotos(x.Id);
+                x.ProductMedias =  GetProductMedias(x.Id);
                 x.VotesResult =  GetProductVoteResult(x.Id);
                 x.BoughtCount =  GetBoughtCount(x.Id);
                 x.Voters =  GetProductVoters(x.Id);
@@ -346,7 +345,7 @@ public class ProductService : IProductService
                     StartDate = updatedProduct.StartDate,
                     EndDate = updatedProduct.EndDate,
                     Discount = updatedProduct.Discount,
-                    ProductPhotos = GetProductPhotos(product.Id),
+                    ProductMedias = GetProductMedias(product.Id),
                     VotesResult = GetProductVoteResult(product.Id),
                     BoughtCount = GetBoughtCount(product.Id),
                     Voters = GetProductVoters(product.Id)
@@ -358,6 +357,68 @@ public class ProductService : IProductService
         {
             _logger.LogInformation(e.Message);
             throw new Exception(e.Message);
+        }
+    }
+ 
+    public async ValueTask SaveFile(IList<IFormFile> files, Guid id)
+    {
+        _logger.LogInformation("Started Files Saving");
+
+        var fileNames = new List<string>();
+
+        foreach (var file in files)
+        {
+            var fileExtension = Path.GetExtension(file.FileName);
+            var fileName = Guid.NewGuid().ToString() + fileExtension;
+            var filePath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", fileName);
+            await using var stream = new FileStream(filePath, FileMode.Create);
+            await file.CopyToAsync(stream); 
+
+            fileNames.Add(fileName);
+        }
+        
+        var product = _unitOfWork.ProductRepository.GetById(id);
+        
+        if(product is null)
+        {
+            _logger.LogInformation("product not found");
+            return;
+        }
+
+        product.ProductMedias = FileNameCombiner(fileNames);
+        
+        await _unitOfWork.ProductRepository.Update(product);
+
+        _logger.LogInformation("Finished Saving files");
+    }
+
+    private string FileNameCombiner(List<string> names)
+    {
+       if(names is null)
+       return "";
+       
+       var combinedNames = "";
+
+       names.ForEach(x => 
+       {
+          combinedNames += "#" + x;
+       }); 
+
+       return combinedNames;
+    }
+
+    public IList<string> NamesSplitter(string names)
+    {
+        try
+        {
+         string[] result = names.Split('#');
+
+         return result;
+        }
+        catch (System.Exception)
+        {
+            
+            throw;
         }
     }
 }

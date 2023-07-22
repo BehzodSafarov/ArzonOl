@@ -11,6 +11,5 @@ public interface IVoterService
     ValueTask<ProductVoterModel> UpdateForCommentAsync(ProductVoterModel productVoterModel);
     ValueTask<ProductVoterModel> DeleteCommentAsync(ProductVoterModel productVoterModel);
     ValueTask<ProductVoterModel> DeleteVoteAsync(ProductVoterModel productVoterModel);
-    ValueTask<List<ProductVoterModel>> GetVotesAsync(Guid productId);
     ValueTask<ProductVoterModel> MupDtoToModel(VoterDto dto);
 }

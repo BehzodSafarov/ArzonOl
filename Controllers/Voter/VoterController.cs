@@ -165,24 +165,5 @@ namespace ArzonOL.Controllers.Voter
             }
         }
 
-        [HttpGet("GetVotes/{productId}")]
-        public async Task<ActionResult<List<ProductVoterModel>>> GetVotes(Guid productId)
-        {
-            try
-            {
-                var votes = await _voterService.GetVotesAsync(productId);
-                return Ok(votes);
-            }
-            catch (ArgumentException ex)
-            {
-                _logger.LogError(ex, "Invalid product ID.");
-                return BadRequest(ex.Message);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "An error occurred while fetching the product votes.");
-                return StatusCode(StatusCodes.Status500InternalServerError, "An error occurred while fetching the product votes.");
-            }
-        }
     }
 }

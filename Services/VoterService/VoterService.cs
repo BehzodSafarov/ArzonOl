@@ -131,6 +131,7 @@ namespace ArzonOL.Services.VoterService
             if (existingVoterEntity != null)
             {
                 existingVoterEntity.Comment = null;
+                await _unitOfWork.VoterRepository.Update(existingVoterEntity);
 
                 _logger.LogInformation($"Comment for product voter with ID {productVoterModel.UserId} was deleted.");
 
@@ -158,6 +159,7 @@ namespace ArzonOL.Services.VoterService
             if (existingVoterEntity != null)
             {
                 existingVoterEntity.Vote = null;
+                await _unitOfWork.VoterRepository.Update(existingVoterEntity);
 
                 _logger.LogInformation($"Vote for product voter with ID {productVoterModel.UserId} was deleted.");
 
@@ -166,19 +168,6 @@ namespace ArzonOL.Services.VoterService
             }
 
             throw new KeyNotFoundException("Product voter not found.");
-        }
-
-        public async ValueTask<List<ProductVoterModel>> GetVotesAsync(Guid productId)
-        {
-            // Validate input data before fetching votes
-            if (productId == Guid.Empty)
-                throw new ArgumentException("Invalid product ID.", nameof(productId));
-
-            // Your implementation to get the list of votes for the given productId from the repository
-            var votes =  _unitOfWork.VoterRepository.GetAll().Select(x => EntityToModel(x)).ToList();
-
-            _logger.LogInformation($"Retrieved {votes} votes for product with ID {productId}.");
-            return votes;
         }
 
         public async ValueTask<ProductVoterModel> MupDtoToModel(VoterDto dto)
@@ -210,7 +199,7 @@ namespace ArzonOL.Services.VoterService
             };
         }
 
-        private ProductVoterModel EntityToModel(ProductVoterEntity entity)
+        private  ProductVoterModel EntityToModel(ProductVoterEntity entity)
         {
             var voteResult = GetProductVoteResult(entity.ProductId);
             var boughtCount = GetBoughtCount(entity.ProductId);
@@ -252,7 +241,7 @@ namespace ArzonOL.Services.VoterService
             };
         }
 
-        private ProductVoterEntity ModelToEntity(ProductVoterModel model)
+        private static ProductVoterEntity ModelToEntity(ProductVoterModel model)
         {
             return new ProductVoterEntity
             {

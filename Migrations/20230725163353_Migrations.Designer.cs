@@ -12,7 +12,7 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace ArzonOL.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20230719060656_Migrations")]
+    [Migration("20230725163353_Migrations")]
     partial class Migrations
     {
         /// <inheritdoc />
@@ -122,20 +122,26 @@ namespace ArzonOL.Migrations
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
 
+                    b.Property<Guid?>("ProductEntityId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<Guid?>("ProductId")
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<DateTime>("UpdatedAt")
                         .HasColumnType("datetime2");
 
-                    b.Property<string>("UserId")
+                    b.Property<string>("UserEntityId")
                         .HasColumnType("nvarchar(450)");
+
+                    b.Property<string>("UserId")
+                        .HasColumnType("nvarchar(max)");
 
                     b.HasKey("Id");
 
-                    b.HasIndex("ProductId");
+                    b.HasIndex("ProductEntityId");
 
-                    b.HasIndex("UserId");
+                    b.HasIndex("UserEntityId");
 
                     b.ToTable("BoughtProducts");
                 });
@@ -252,7 +258,7 @@ namespace ArzonOL.Migrations
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
 
-                    b.Property<Guid>("ProductId")
+                    b.Property<Guid?>("ProductId")
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<DateTime>("UpdatedAt")
@@ -264,7 +270,7 @@ namespace ArzonOL.Migrations
                     b.Property<string>("UserId1")
                         .HasColumnType("nvarchar(450)");
 
-                    b.Property<int>("Vote")
+                    b.Property<int?>("Vote")
                         .HasColumnType("int");
 
                     b.HasKey("Id");
@@ -528,11 +534,11 @@ namespace ArzonOL.Migrations
                 {
                     b.HasOne("ArzonOL.Entities.BaseProductEntity", "ProductEntity")
                         .WithMany("BoughtProducts")
-                        .HasForeignKey("ProductId");
+                        .HasForeignKey("ProductEntityId");
 
                     b.HasOne("ArzonOL.Entities.UserEntity", "UserEntity")
                         .WithMany()
-                        .HasForeignKey("UserId");
+                        .HasForeignKey("UserEntityId");
 
                     b.Navigation("ProductEntity");
 
@@ -581,9 +587,7 @@ namespace ArzonOL.Migrations
                 {
                     b.HasOne("ArzonOL.Entities.BaseProductEntity", "Product")
                         .WithMany("Voters")
-                        .HasForeignKey("ProductId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                        .HasForeignKey("ProductId");
 
                     b.HasOne("ArzonOL.Entities.UserEntity", "User")
                         .WithMany("Voters")

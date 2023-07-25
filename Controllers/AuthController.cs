@@ -125,7 +125,7 @@ namespace ArzonOL.Controllers
 
                 if (!registerResult.Succeeded)
                     return BadRequest(registerResult.Errors);
-
+                
                 return Ok(await LoginAsync(
                     new LoginDto
                     {

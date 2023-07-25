@@ -291,8 +291,10 @@ namespace ArzonOL.Migrations
                 columns: table => new
                 {
                     Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    UserId = table.Column<string>(type: "nvarchar(450)", nullable: true),
+                    UserId = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    UserEntityId = table.Column<string>(type: "nvarchar(450)", nullable: true),
                     ProductId = table.Column<Guid>(type: "uniqueidentifier", nullable: true),
+                    ProductEntityId = table.Column<Guid>(type: "uniqueidentifier", nullable: true),
                     CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
                     UpdatedAt = table.Column<DateTime>(type: "datetime2", nullable: false)
                 },
@@ -300,13 +302,13 @@ namespace ArzonOL.Migrations
                 {
                     table.PrimaryKey("PK_BoughtProducts", x => x.Id);
                     table.ForeignKey(
-                        name: "FK_BoughtProducts_AspNetUsers_UserId",
-                        column: x => x.UserId,
+                        name: "FK_BoughtProducts_AspNetUsers_UserEntityId",
+                        column: x => x.UserEntityId,
                         principalTable: "AspNetUsers",
                         principalColumn: "Id");
                     table.ForeignKey(
-                        name: "FK_BoughtProducts_Products_ProductId",
-                        column: x => x.ProductId,
+                        name: "FK_BoughtProducts_Products_ProductEntityId",
+                        column: x => x.ProductEntityId,
                         principalTable: "Products",
                         principalColumn: "Id");
                 });
@@ -343,9 +345,9 @@ namespace ArzonOL.Migrations
                 columns: table => new
                 {
                     Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    Vote = table.Column<int>(type: "int", nullable: false),
+                    Vote = table.Column<int>(type: "int", nullable: true),
                     Comment = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    ProductId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    ProductId = table.Column<Guid>(type: "uniqueidentifier", nullable: true),
                     UserId = table.Column<Guid>(type: "uniqueidentifier", nullable: true),
                     UserId1 = table.Column<string>(type: "nvarchar(450)", nullable: true),
                     CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
@@ -363,8 +365,7 @@ namespace ArzonOL.Migrations
                         name: "FK_ProductVoters_Products_ProductId",
                         column: x => x.ProductId,
                         principalTable: "Products",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
+                        principalColumn: "Id");
                 });
 
             migrationBuilder.CreateIndex(
@@ -407,14 +408,14 @@ namespace ArzonOL.Migrations
                 filter: "[NormalizedUserName] IS NOT NULL");
 
             migrationBuilder.CreateIndex(
-                name: "IX_BoughtProducts_ProductId",
+                name: "IX_BoughtProducts_ProductEntityId",
                 table: "BoughtProducts",
-                column: "ProductId");
+                column: "ProductEntityId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_BoughtProducts_UserId",
+                name: "IX_BoughtProducts_UserEntityId",
                 table: "BoughtProducts",
-                column: "UserId");
+                column: "UserEntityId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_CartProducts_CartId",

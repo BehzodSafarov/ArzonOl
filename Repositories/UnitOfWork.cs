@@ -10,7 +10,6 @@ public class UnitOfWork : IUnitOfWork
     public IProductRepository ProductRepository  { get; }
     public IUserRepository UserRepository  { get; }
     public ICategoryRepository CategoryRepository { get; }
-
     public IBoughtProductRepository BoughtProductRepository {get;}
     public ICartEntityRepository CartRepository {get;}
     public ICartProductRepository CartProductRepository {get;}

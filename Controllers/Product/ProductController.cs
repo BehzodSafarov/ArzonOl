@@ -43,11 +43,19 @@ namespace ArzonOL.Controllers.Product
         [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(Result<ProductModel>))]
         public async Task<IActionResult> CreateProduct(CreateProductDto createProductDto)
         {
-            if (createProductDto == null)
-                return BadRequest("Product cannot be null");
+            try
+            {
+                if (createProductDto == null)
+                    return BadRequest("Product cannot be null");
 
-            var createdProduct = await _productService.CreateProductAsync(createProductDto);
-            return Ok(createdProduct);
+                var createdProduct = await _productService.CreateProductAsync(createProductDto);
+                return Ok(createdProduct);
+                
+            }
+            catch (System.Exception e)
+            {
+                throw new Exception(e.Message);
+            }
         }
 
         [HttpPost("uploadProductFiles")]

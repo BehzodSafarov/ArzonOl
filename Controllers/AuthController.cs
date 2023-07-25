@@ -78,6 +78,9 @@ namespace ArzonOL.Controllers
                 if (!isCorrectPhoneNumber.Item1)
                     return BadRequest(isCorrectPhoneNumber.Item2);
                     
+                if(await _registerService.ValidateUsernameIsExist(smsDto.UserName))
+                return BadRequest("This username is using please choose another username");
+                    
                 await _smsService.SendSmsAsync(smsDto.PhoneNumber!);
 
                 var cacheEntryOptions = new MemoryCacheEntryOptions()
@@ -121,7 +124,7 @@ namespace ArzonOL.Controllers
             {
                 var splittedString =  StringSplitter(passwordAndUserName);
 
-                var registerResult = await _registerService.RegisterAsync(splittedString[1], splittedString[0], "User", "email");
+                var registerResult = await _registerService.RegisterAsync(splittedString[1], splittedString[0], "User");
 
                 if (!registerResult.Succeeded)
                     return BadRequest(registerResult.Errors);

@@ -34,7 +34,7 @@ namespace ArzonOL.Services.AuthService
             _configuration = configuration;
         }
 
-        public string CreateJwtToken(string username, string email, string role, string userId)
+        public string CreateJwtToken(string username, string role, string userId)
         {
             _logger.LogInformation("Creating JWT token for user {username}", username);
 
@@ -49,7 +49,6 @@ namespace ArzonOL.Services.AuthService
                 new Claim(ClaimTypes.Name, username),
                 new Claim("Id", userId),
                 new Claim(ClaimTypes.Role, role),
-                new Claim(ClaimTypes.Email, email)
             };
 
             var tokenHandler = new JwtSecurityTokenHandler();
@@ -112,7 +111,7 @@ namespace ArzonOL.Services.AuthService
                 return string.Empty;
             }
 
-            var result = CreateJwtToken(username, user.Email, roles[0], user.Id);
+            var result = CreateJwtToken(username, roles[0], user.Id);
 
             if (string.IsNullOrEmpty(result))
             {

@@ -86,30 +86,52 @@ namespace ArzonOL.Services.AuthService
             }
         }
 
-        public async Task<IdentityResult> RegisterAsync(string username, string password, string role, string email)
+        public async Task<IdentityResult> RegisterAsync(string username, string password, string role)
         {
             _logger.LogInformation("Registering user {username}", username);
 
-            if (string.IsNullOrEmpty(username) || string.IsNullOrEmpty(password) || string.IsNullOrEmpty(role) || string.IsNullOrEmpty(email))
-                return IdentityResult.Failed(new IdentityError { Code = EErrorType.ClientError.ToString(), Description = "Username, password, role, or email is empty" });
+            if (string.IsNullOrEmpty(username) || string.IsNullOrEmpty(password) || string.IsNullOrEmpty(role))
+                return IdentityResult.Failed(new IdentityError { Code = EErrorType.ClientError.ToString(), Description = "Username, password, or is empty" });
 
             try
             {
-                var user = new UserEntity { UserName = username, Email = email };
+               
+                var user = new UserEntity { UserName = username };
                 var userCreateResult = await _userManager.CreateAsync(user, password);
 
                 if (!userCreateResult.Succeeded)
-                    return IdentityResult.Failed(new IdentityError { Code = EErrorType.ClientError.ToString(), Description = string.Join(", ", userCreateResult.Errors) });
-
+                    return IdentityResult.Failed(new IdentityError { Code = EErrorType.ClientError.ToString(), Description = string.Join("ErrorKey", userCreateResult.Errors) });
+                
                 if (await _roleManager.RoleExistsAsync(role))
                     await _userManager.AddToRoleAsync(user, role);
-
+                
                 return IdentityResult.Success;
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Failed to register user");
                 throw new Exception("Failed to register user");
+            }
+        }
+
+        public async Task<bool> ValidateUsernameIsExist(string username)
+        {
+            try
+            {
+                if(string.IsNullOrEmpty(username))
+                return false;
+
+                var result = await _userManager.FindByNameAsync(username);
+
+                if(result == null)
+                return false;
+
+                return true;
+            }
+            catch (System.Exception e)
+            {
+                
+                throw;
             }
         }
     }
